@@ -1,0 +1,119 @@
+
+#import libraries
+import earnix
+import pandas as pd
+import numpy as np
+import csv
+
+#arguments 
+
+#project_path                        =r'\Company\Ireland\Ireland Auto Direct\01. Offline Processes\Ireland Mass Release - Loss Cost 20200903 (Dataset Testing)'
+project_path                        =r'\Company\Ireland\Ireland Auto Direct\00. Archive\Ireland Auto Direct NB - Loss Cost Jaime'
+tables_target_folder_path           =r'02a. UAT Testing' 
+target_data_structure               =r'02a. UAT Testing\Earnix Analysis Dataset UAT'
+
+structure_to_copy_mapping           =r'02a. UAT Testing\Reference DataSet3'
+input_tables_path            =r'D:\Data\Ireland\Earnix Analysis Dataset UAT\3.UAT_NON_PRODv2\Policy_CQ'
+file_names = ['Policy_Table', 'Driver_Table', 'Conviction_Table', 'Claim_Table', 'Vehicle_Table', 'Package_Table', 'Coverage_Table']
+
+#open project 
+project_id = earnix.open_project(project_path)
+
+try:
+    data_structure_column_map = earnix.get_data_table_info(project_id, structure_to_copy_mapping)['columns']
+    
+    field_type_mapping = []
+    for pair in data_structure_column_map:
+        column_name = pair[0].split(".")[1]
+        column_type = pair[1]
+        if column_name == 'transactionSeqID':
+            field_type_mapping.append([column_name, "text"])
+        else:
+            field_type_mapping.append([column_name, column_type])
+
+    for file_n in file_names:
+        data_table = tables_target_folder_path + "\\" + file_n
+        csv_file = input_tables_path + "\\" + file_n + ".csv"
+        earnix.import_data_table_from_csv_file(project_id, data_table,csv_file, types = field_type_mapping, date_pattern='dd/MM/yyyy')
+
+
+    subitems_tree = {
+    'subitem': 'Policy', 
+    'data': tables_target_folder_path + "\Policy_Table",
+    'children': [
+    {
+        'subitem': 'Driver',
+        'data': tables_target_folder_path + "\Driver_Table",
+        'primary_key': 'Pol_Key',
+        'foreign_key': 'Pol_Key',
+        'exclude_parent_rows_with_no_child_rows': True, 
+        'remove_rows_with_no_parent_rows': True, 
+        'children': [
+            {
+            'subitem': 'Claims',
+            'data': tables_target_folder_path + "\Claim_Table",
+            'primary_key': 'Driver_Key', 
+            'foreign_key': 'Driver_Key',
+            'exclude_parent_rows_with_no_child_rows': False, 
+            'remove_rows_with_no_parent_rows': True
+            }, 
+             {
+            'subitem': 'Convictions',
+            'data': tables_target_folder_path + "\Conviction_Table",
+            'primary_key': 'Driver_Key', 
+            'foreign_key': 'Driver_Key',
+            'exclude_parent_rows_with_no_child_rows': False, 
+            'remove_rows_with_no_parent_rows': True 
+            }
+            ]
+    }, 
+    {
+        'subitem': 'Vehicle',
+        'data': tables_target_folder_path + "\Vehicle_Table",
+        'primary_key': 'Pol_Key',
+        'foreign_key': 'Pol_Key',
+        'exclude_parent_rows_with_no_child_rows': True,
+        'remove_rows_with_no_parent_rows': True,
+        'children': [
+            {
+            'subitem': 'Package',
+            'data': tables_target_folder_path + "\Package_Table",
+            'primary_key': 'VH_Key',
+            'foreign_key': 'VH_Key',
+            'exclude_parent_rows_with_no_child_rows': True, 
+            'remove_rows_with_no_parent_rows': True,
+            'children': [
+                {
+                'subitem': 'Coverage',
+                'data': tables_target_folder_path + "\Coverage_Table",
+                'primary_key': 'Package_Key',
+                'foreign_key': 'Package_Key',
+                'exclude_parent_rows_with_no_child_rows': True, 
+                'remove_rows_with_no_parent_rows': True 
+                }
+               ]
+            }
+        ]
+    }
+    ]
+}
+    earnix.create_data_structure(project_id, target_data_structure, subitems_tree)
+    mapping = earnix.get_mapping_of_columns_to_variables(project_id, structure_to_copy_mapping)
+    mapping= [ item for item in mapping if item[1]!=None  ]
+
+#    print(mapping)
+    earnix.map_columns_to_variables(project_id, target_data_structure, mapping)
+   
+    earnix.expose_modeling_version_to_data_table(project_id, parameter='RP98.Package_Premium', version='v02 R', data_table=r'02a. UAT Testing\UAT Package Prediction JRR NonProd', sample=target_data_structure + "\Package")
+     
+    earnix.expose_modeling_version_to_data_table(project_id, parameter='RP98.Coverage_Premium', version='vFinal final', data_table=r'02a. UAT Testing\UAT Package Prediction JRR NonProd', sample= r'02a. UAT Testing\UAT Package Prediction JRR NonProd'+"\Coverage")
+  
+
+finally:
+    #close project
+    #for file_n in file_names:
+        #data_table = tables_target_folder_path + "\\" + file_n
+        #earnix.delete_data_table(project_id, data_table)
+    
+    earnix.close_project(project_id)
+    print('Code finished')
