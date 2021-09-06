@@ -1,0 +1,77 @@
+import earnix
+import pandas as pd
+import csv
+import numpy as np
+
+def setUpProject():
+    project = r"\Company\Ireland\Ireland Auto Direct\00. Archive\Ireland Auto Direct NB - Loss Cost Jaime"
+    project_id = earnix.open_project(project)
+    return project_id
+
+def exportRestoredTables(project_id): 
+    data_structure_subitem = "05. UAT of EAD\\Earnix Analysis Dataset UAT"
+    subitem_names = ['\\Policy', '\\Package']
+    subitem_table = "05. UAT of EAD"
+    exportPath = 'D:\\Data\\Ireland\Earnix Analysis Dataset UAT\\UAT_PROD\\Transactions_Full\\PremiumChecks\\IPAC_validations'
+
+    for subitem in subitem_names:
+        earnix.restore_data_structure_subitem_as_data_table(project_id, data_structure_subitem + subitem, subitem_table + subitem)
+        earnix.export_data_table_to_csv_file(project_id, subitem_table + subitem, exportPath + subitem + '.csv')
+    return exportPath
+
+def pandasMerge(restoredPath, ipac_source):
+    packageCompPath = restoredPath + '\\Package_Comparation.csv'
+    packageCompFile = pd.read_csv(packageCompPath)
+    dictFiles = {
+        "Policy": "D:\\Data\\Ireland\\Earnix Analysis Dataset UAT\\UAT_PROD\\Transactions_Full\\PremiumChecks\\IPAC_validations\\Policy.csv",
+        "Package": "D:\\Data\\Ireland\\Earnix Analysis Dataset UAT\\UAT_PROD\\Transactions_Full\\PremiumChecks\\IPAC_validations\\Package.csv"
+    }
+    fileToMergePath = dictFiles.get(ipac_source)
+    fileToMerge = pd.read_csv(fileToMergePath)
+    if ipac_source == 'Policy':
+       exportPath = restoredPath + '\\Policy_IPAC_File.csv'
+       packageCompFile = policyMergeExport(packageCompFile, fileToMerge)
+       
+    successIPAC(packageCompFile, ipac_source, restoredPath)
+
+def policyMergeExport(packageCompFile, fileToMerge):
+     packageCompFile = pd.merge(packageCompFile, fileToMerge, on = 'Pol_Key', how = 'left')
+     packageCompFile = packageCompFile.drop(columns=['paymentFrequencyDesc', 'paymentFrequencyId', 'paymentMethodDesc', 'paymentMethodId', 'affinityGroup', 'brokerDesc', 'channel','indicatorNonMotorConviction', 'indicatorPastDisqualification', 'indicatorRefusalCancelledSpecial', 'multiPolicyFlag', 'priceTestFactor', 'pricingVersionID', 'promotionCode', 'ruleID', 'termVehicleChangesCount','31389', '31340', '31247', '31082', '31360', '31250', '31155', 'VH_Key', 'exposureEffectiveDate', 'rfaAdjustmentPercent', 'originalInceptionDate', 'policyExpirationDate', 'posAdjustmentAmount', 'posAdjustmentPercent', 'quoteStatus', 'transactionSeqID'])
+     return packageCompFile
+    
+def successIPAC(packageCompFile, ipac_source, restoredPath):
+    packageCompFile = packageCompFile.rename(columns={"Check": "IPAC_Check", "Abs Difference":"IPAC_Abs_Difference", "transactionType":"IPAC_transactionType"})
+    packageCompFile = packageCompFile.filter(regex='^IPAC*')
+    if ipac_source == 'Policy':
+        packageCompFile = packageCompFile[packageCompFile['IPAC_transactionType'] == 'policy']
+        easy_customizable_col = ['IPAC_CL015_Max_Cnt_At_Fault', 'IPAC_CL017_Max_Cnt_Non_Fault', 'IPAC_CL019_Yrs_Since_Non_Fault', 
+        'IPAC_CV005_Max_Penalty_Pts', 'IPAC_DR015a_PH_is_HR_AD', 'IPAC_DR019_Tot_Driver_Cnt', 'IPAC_DR026_Tot_Prov_Lic_Cnt', 'IPAC_DR041_Gender_HR',
+        'IPAC_DR054b_HR_Rtnshp_to_PH', 'IPAC_DR067_All_Drivers_Own_Cars', 'IPAC_LIC002_Region_HR_AD', 'IPAC_LIC018_Years_HR_AD', 
+        'IPAC_OCC005_Occup_Group', 'IPAC_SA002b_Channel']
+        
+    packageCompFile = packageCompFile.drop(columns=['IPAC_transactionType'])
+    ipacPath = restoredPath + '\\Just_IPAC_File.csv'
+    packageCompFile.to_csv (ipacPath, index = False, header=True)
+    f = open("D:\\Data\\Ireland\\Earnix Analysis Dataset UAT\\UAT_PROD\\Transactions_Full\\PremiumChecks\\IPAC_validations\\output.txt",'w')
+    
+    #print(packageCompFile.pivot_table(index="IPAC_DR041_Gender_HR", columns="IPAC_Check", aggfunc="count", margins=True))
+    #packageCompFile = packageCompFile.stack()
+    for ipacfield in easy_customizable_col:
+        f.write('\n')
+        print(packageCompFile.pivot_table(index=ipacfield, columns="IPAC_Check", aggfunc="count")) #, margins=True))
+        f.write(str(packageCompFile.pivot_table(index=ipacfield, columns="IPAC_Check", aggfunc="count"))) #, margins=True)))
+        f.write('\n')
+        f.write('-----------------------------------------------------------------------------------')
+    
+    f.close()
+    
+try:
+    ipac_source = "Policy"
+    project_id = setUpProject()
+    restoredPath = exportRestoredTables(project_id)
+    pandasMerge(restoredPath, ipac_source)
+    
+        
+finally:
+    earnix.close_project(project_id)
+    print("Table restored")
