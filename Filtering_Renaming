@@ -1,0 +1,18 @@
+import earnix
+import pandas as pd
+import csv
+import numpy as np
+
+coveragePath = "D:\\Data\\Ireland\\Earnix Analysis Dataset UAT\\3.UAT_NON_PRODv2\\Policy_CQ\\CoverageRenaming\\CoverageToBeRenamed.csv"
+exportPath = "D:\\Data\\Ireland\\Earnix Analysis Dataset UAT\\3.UAT_NON_PRODv2\\Policy_CQ\\CoverageRenaming\\Coverage_Table.csv"
+
+coverageFile = pd.read_csv(coveragePath)
+
+#RoadAssistanceCoverage to RoadAssistance
+#Driver'sAccidentCoverage to DriversAccidentCoverage
+coverageFile['coverageName'] = coverageFile['coverageName'].str.replace('RoadAssistanceCoverage','RoadAssistance')
+coverageFile['coverageName'] = coverageFile['coverageName'].str.replace("Driver'sAccidentCoverage","DriversAccidentCoverage")
+
+coverageFile = coverageFile[coverageFile['policyCountry'] == 'Ireland']
+
+coverageFile.to_csv (exportPath, index = False, header=True)
