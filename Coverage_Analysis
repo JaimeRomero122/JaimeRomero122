@@ -1,0 +1,30 @@
+import earnix
+import pandas as pd
+import csv
+import numpy as np
+
+exportPath = 'D:\\Data\\Ireland\Earnix Analysis Dataset UAT\\3.UAT_NON_PRODv2\\Policy_CQ\\CoverageAnalysis\\Sum_by_Coverage.csv'
+coveragePath = 'D:\\Data\\Ireland\Earnix Analysis Dataset UAT\\3.UAT_NON_PRODv2\\Policy_CQ\\CoverageAnalysis\\Just_IE_Coverage.csv'
+packqsonCQPath = 'D:\\Data\\Ireland\Earnix Analysis Dataset UAT\\3.UAT_NON_PRODv2\\Policy_CQ\\CoverageAnalysis\\Package_qson_CQ.csv'
+packqsonPolPath = 'D:\\Data\\Ireland\Earnix Analysis Dataset UAT\\3.UAT_NON_PRODv2\\Policy_CQ\\CoverageAnalysis\\Package_qson_Pol.csv'
+
+coverageFile = pd.read_csv(coveragePath)
+packqsonCQFile = pd.read_csv(packqsonCQPath)
+packqsonPolFile = pd.read_csv(packqsonPolPath)
+
+CQCovFile = pd.merge(packqsonCQFile, 
+                                    coverageFile,
+                                    on = 'Package_Key',
+                                    how = 'left')
+
+print("Completed Quotes coverage count: ")
+print(CQCovFile['coverageName'].value_counts())
+
+PolCovFile = pd.merge(packqsonPolFile, 
+                                    coverageFile,
+                                    on = 'Package_Key',
+                                    how = 'left')
+
+print("Policy coverage count: ")
+print(PolCovFile['coverageName'].value_counts())
+
