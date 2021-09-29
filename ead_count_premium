@@ -1,0 +1,20 @@
+import earnix
+import pandas as pd
+import csv
+import numpy as np
+
+policyPath = "D:\\Data\\Ireland\\Earnix Analysis Dataset UAT\\4.UAT_PROD\\EAD_Counts_Premiums\\Policy_TransDateFilter.csv"
+exportPath = "D:\\Data\\Ireland\\Earnix Analysis Dataset UAT\\4.UAT_PROD\\EAD_Counts_Premiums\\\export.csv"
+
+df = pd.read_csv(policyPath)
+
+sales = df[df.transactionType == "policy"]
+quotes = df[df.transactionType == "quote"]
+
+print("Sales count: ", sales['Pol_Key'].count())
+print("Sales premium: ", sales['netWrittenPremium'].sum().round(2), "\ufffd")
+
+uniqueQuotes = quotes.drop_duplicates(subset=['policyID'])
+
+print("Quotes count: ", len(uniqueQuotes))
+print("Quotes premium: ", uniqueQuotes['netWrittenPremium'].sum().round(2), "\ufffd")
