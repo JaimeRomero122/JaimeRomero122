@@ -1,0 +1,13 @@
+import earnix
+import pandas as pd
+import csv
+import numpy as np
+
+packagePath = "D:\\Data\\Ireland\\Earnix Analysis Dataset UAT\\4.UAT_PROD\\Policy_CQ\\\RemovePackageDups\\PackageWithDups.csv"
+exportPath = "D:\\Data\\Ireland\\Earnix Analysis Dataset UAT\\4.UAT_PROD\\Policy_CQ\\\RemovePackageDups\\Package_Table.csv"
+
+df = pd.read_csv(packagePath)
+
+df = df.drop_duplicates('Package_Key', keep='first')
+
+df.to_csv (exportPath, index = False, header=True)
